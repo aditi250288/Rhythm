@@ -1,10 +1,4 @@
-import React, {
-  useContext,
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-} from "react";
+import React, {useContext, useState, useEffect, useLayoutEffect, useRef } from "react";
 // eslint-disable-next-line
 import { useCookies } from "react-cookie";
 import { Howl } from "howler";

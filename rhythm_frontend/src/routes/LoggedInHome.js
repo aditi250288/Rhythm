@@ -1,16 +1,19 @@
-import React from "react";
+import React, { useContext } from 'react';
 import LoggedInContainer from "../containers/LoggedInContainer";
-import SpotifyWebApi from 'spotify-web-api-js';
+import { Howl } from 'howler'; // Import Howl to handle audio playback
 // eslint-disable-next-line no-unused-vars
 import TextWithHover from "../components/shared/textWithHover";
 // eslint-disable-next-line no-unused-vars
-const spotifyApi = new SpotifyWebApi();
+import songContext from "../contexts/songContext"; // Assuming songContext is available
+
+
 
 const focusCardsData = [
   {
     title: "Peaceful Piano",
     description: "Relax and indulge with beautiful piano pieces",
     imgUrl: "https://images.unsplash.com/photo-1517578099694-8b23adec837c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    songId: "6704e8ef694c398f8d5fa6c1"
   },
   {
     title: "English Songs",
@@ -33,7 +36,6 @@ const focusCardsData = [
   description: "Focus with deep techno and tech house",
   imgUrl: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80",
 }
-  // ... (other focus cards data)
 ];
 
 // eslint-disable-next-line no-unused-vars
@@ -65,7 +67,6 @@ const rhythmPlaylistsCardData = [
   description: "old musical melodies",
   imgUrl: "https://plus.unsplash.com/premium_photo-1682125816787-4db071ef2da8?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
 },
-  // ... (other rhythm playlists data)
 ];
 
 // eslint-disable-next-line no-unused-vars
@@ -99,17 +100,75 @@ const SoundOfIndiaCardsData = [
   description: "old musical melodies",
   imgUrl: "https://plus.unsplash.com/premium_photo-1682125893394-7372df580472?q=80&w=2071&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
 },
-  // ... (other Sound of India cards data)
 ];
 
 const LoggedInHome = () => {
+  const { setCurrentSong } = useContext(songContext); // Use songContext to set the current song
+
+  // Function to retrieve the JWT token from the cookie
+  const getTokenFromCookie = () => {
+    const cookies = document.cookie.split("; ");
+    const tokenCookie = cookies.find(cookie => cookie.startsWith("token="));
+    if (tokenCookie) {
+      return tokenCookie.split("=")[1];
+    }
+    return null;
+  };
+
+  // Function to handle card click and play the song
+  const handleCardClick = async (songId) => {
+    try {
+      const token = getTokenFromCookie(); // Get the JWT token from the cookie
+
+      if (!token) {
+        console.error("No JWT token found in cookies, user may not be authenticated");
+        return;
+      }
+
+      console.log("JWT Token:", token); // Log the token to confirm it was extracted correctly
+
+      // Fetch the song data from the backend
+      const response = await fetch(`http://localhost:5000/api/song/get/${songId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Attach JWT token from cookie
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched Song:", data.data);
+
+        setCurrentSong(data.data); // Set the fetched song as the current song
+
+        // Play the song using Howl
+        const sound = new Howl({
+          src: [data.data.track], // Use the track URL from the song data
+          html5: true, // Use HTML5 Audio to ensure it works across all browsers
+          volume: 1.0, // Adjust the volume as needed
+        });
+
+        sound.play(); // Play the sound
+      } else {
+        console.error("Failed to fetch song:", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error fetching song:", error);
+    }
+  };
+
   return (
     <LoggedInContainer curActiveScreen="home">
       <div className="content p-8 text-white">
         <div className="text-2xl font-bold mb-4">Focus</div>
         <div className="grid grid-cols-5 gap-4">
           {focusCardsData.map((card, index) => (
-            <div key={index} className="bg-black p-4 rounded-lg">
+            <div
+              key={index}
+              className="bg-black p-4 rounded-lg cursor-pointer"
+              onClick={() => handleCardClick(card.songId)} // Call handleCardClick with the songId
+            >
               <img src={card.imgUrl} alt={card.title} className="w-full h-40 object-cover rounded-lg mb-2" />
               <div className="text-white font-semibold">{card.title}</div>
               <div className="text-gray-400 text-sm">{card.description}</div>
@@ -121,7 +180,11 @@ const LoggedInHome = () => {
         <div className="text-2xl font-bold mb-4 mt-8">Rhythm Playlists</div>
         <div className="grid grid-cols-5 gap-4">
           {rhythmPlaylistsCardData.map((card, index) => (
-            <div key={index} className="bg-black p-4 rounded-lg">
+            <div
+              key={index}
+              className="bg-black p-4 rounded-lg cursor-pointer"
+              onClick={() => handleCardClick(card.songId)} // Handle song click for playlists
+            >
               <img src={card.imgUrl} alt={card.title} className="w-full h-40 object-cover rounded-lg mb-2" />
               <div className="text-white font-semibold">{card.title}</div>
               <div className="text-gray-400 text-sm">{card.description}</div>
@@ -133,7 +196,11 @@ const LoggedInHome = () => {
         <div className="text-2xl font-bold mb-4 mt-8">Sound of India</div>
         <div className="grid grid-cols-5 gap-4">
           {SoundOfIndiaCardsData.map((card, index) => (
-            <div key={index} className="bg-black p-4 rounded-lg">
+            <div
+              key={index}
+              className="bg-black p-4 rounded-lg cursor-pointer"
+              onClick={() => handleCardClick(card.songId)} // Handle song click for Sound of India
+            >
               <img src={card.imgUrl} alt={card.title} className="w-full h-40 object-cover rounded-lg mb-2" />
               <div className="text-white font-semibold">{card.title}</div>
               <div className="text-gray-400 text-sm">{card.description}</div>

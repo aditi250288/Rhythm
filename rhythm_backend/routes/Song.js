@@ -104,4 +104,23 @@ router.get(
   }
 );
 
+// Get a single song by ID
+router.get(
+  "/get/:id",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const song = await Song.findById(req.params.id).populate('artist'); // Populate artist details
+      if (!song) {
+        return res.status(404).json({ message: "Song not found" });
+      }
+      return res.status(200).json({ data: song });
+    } catch (error) {
+      console.error("Error fetching song:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+
 module.exports = router;
