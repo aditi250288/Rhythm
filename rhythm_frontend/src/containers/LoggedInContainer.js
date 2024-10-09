@@ -1,4 +1,10 @@
-import React, {useContext, useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, {
+  useContext,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 // eslint-disable-next-line
 import { useCookies } from "react-cookie";
 import { Howl } from "howler";
@@ -33,8 +39,9 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   // eslint-disable-next-line no-unused-vars
   const REDIRECT_URI = process.env.REACT_APP_SPOTIFY_REDIRECT_URI;
-  //const [currentTime, setCurrentTime] = useState(0);
-  //const [songDuration, setSongDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [songDuration, setSongDuration] = useState(0);
+  const [volume, setVolume] = useState(1); // Volume state (1 is max volume)
 
   // Function to fetch playlists
   const fetchPlaylist = async () => {
@@ -153,22 +160,47 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
 
   const changeSong = (songSrc) => {
     if (soundPlayed) {
-      soundPlayed.stop();
+      soundPlayed.stop(); // Stop the currently playing song
     }
+
+    // Create a new Howl instance for the new song
     let sound = new Howl({
       src: [songSrc],
-      html5: true,
+      html5: true, // Ensures compatibility with large files
+      volume: volume,
       onend: () => {
         if (isRepeatOn) {
-          sound.play();
+          sound.play(); // Repeat song if repeat is on
         } else {
-          playNextSong();
+          playNextSong(); // Play next song if repeat is off
         }
       },
+      onplay: () => {
+        setSongDuration(sound.duration()); // Set the total song duration when song starts
+        requestAnimationFrame(updateProgress); // Start updating the progress bar
+      },
     });
+
     setSoundPlayed(sound);
-    sound.play();
-    setIsPaused(false);
+    sound.play(); // Play the new song
+    setIsPaused(false); // Ensure the state is set to playing
+  };
+
+  // Update progress bar as the song plays
+  const updateProgress = () => {
+    if (soundPlayed) {
+      setCurrentTime(soundPlayed.seek()); // Get current time of the song
+      requestAnimationFrame(updateProgress); // Continuously update the progress bar
+    }
+  };
+
+  // Handle progress bar seek
+  const handleSeek = (e) => {
+    const seekTime = e.target.value; // Get the time from the slider
+    if (soundPlayed) {
+      soundPlayed.seek(seekTime); // Seek to the selected time
+      setCurrentTime(seekTime); // Update the current time in state
+    }
   };
 
   const togglePlayPause = () => {
@@ -222,6 +254,14 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
     setIsRepeatOn(!isRepeatOn);
   };
 
+  const handleVolumeChange = (e) => {
+    const newVolume = e.target.value;
+    setVolume(newVolume); // Update the volume state
+    if (soundPlayed) {
+      soundPlayed.volume(newVolume); // Set the volume for the song
+    }
+  };
+
   // eslint-disable-next-line no-unused-vars
 
   return (
@@ -238,7 +278,8 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
         <AddToPlaylistModal
           closeModal={() => setAddToPlaylistModalOpen(false)}
           addSongToPlaylist={addSongToPlaylist}
-          current SongId={currentSong ? currentSong._id : null}
+          current
+          SongId={currentSong ? currentSong._id : null}
         />
       )}
 
@@ -327,7 +368,8 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
       </div>
       {/* Playback controls */}
       {currentSong && (
-        <div className="w-full h-1/10 bg-black bg-opacity-30 text-white flex items-center px-4">
+        <div className="w-full h-[80px] bg-black bg-opacity-50 text-white flex items-center px-4">
+          {/* Song details */}
           <div className="w-1/4 flex items-center">
             <img
               src={currentSong.thumbnail}
@@ -345,7 +387,8 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
               </div>
             </div>
           </div>
-          <div className="w-1/2 flex justify-center h-full flex-col items-center">
+          {/* Center section with play/pause controls and progress bar */}
+          <div className="w-1/2 flex flex-col items-center">
             <div className="flex w-1/3 justify-between items-center">
               <Icon
                 icon="ph:shuffle-fill"
@@ -382,22 +425,47 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
                 onClick={toggleRepeat}
               />
             </div>
+            {/* Progress bar slider */}
+            <input
+              type="range"
+              min="0"
+              max={songDuration}
+              value={currentTime}
+              onChange={handleSeek} // Allows user to seek through the song
+              className="w-2/3 mt-1 mb-2 h-2 text-gray-500 bg-gray-500 rounded-full"
+            />
+            <div className="text-xs flex justify-between w-full mt-1">
+              <span className="text-gray-500">{Math.floor(currentTime)}s</span>{" "}
+              {/* Display current time */}
+              <span className="text-gray-500">
+                {Math.floor(songDuration)}s
+              </span>{" "}
+              {/* Display total duration */}
+            </div>
           </div>
-          <div className="w-1/4 flex justify-end text-white pr-4 space-x-4 item-center">
+          {/* Right section with volume control and additional actions */}
+          <div className="w-1/4 flex justify-end items-center pr-4 space-x-4">
+            <Icon icon="mdi:volume-high" fontSize={30} />
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
+              onChange={handleVolumeChange} // Adjust volume
+              className="w-24 text-gray-500 bg-gray-500"
+            />
             <Icon
               icon="mdi:playlist-plus"
               fontSize={30}
-              className="cursor-poiner text-gray-500 hover:text-white"
-              onClick={()=>{
-              setAddToPlaylistModalOpen(true);
-              }}
+              className="cursor-pointer text-gray-500 hover:text-white"
+              onClick={() => setAddToPlaylistModalOpen(true)}
             />
             <Icon
               icon="icon-park-solid:like"
               fontSize={30}
-              className="cursor-poiner text-gray-500 hover:text-white"
+              className="cursor-pointer text-gray-500 hover:text-white"
             />
-            {/* Add volume controls or additional features here */}
           </div>
         </div>
       )}

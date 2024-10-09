@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import LoggedInContainer from "../containers/LoggedInContainer";
 import { Howl } from 'howler'; // Import Howl to handle audio playback
 // eslint-disable-next-line no-unused-vars
@@ -10,20 +10,22 @@ import songContext from "../contexts/songContext"; // Assuming songContext is av
 
 const focusCardsData = [
   {
-    title: "Peaceful Piano",
-    description: "Relax and indulge with beautiful piano pieces",
+    title: "London Thumaka",
+    description: "Dance with me",
     imgUrl: "https://images.unsplash.com/photo-1517578099694-8b23adec837c?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     songId: "6704e8ef694c398f8d5fa6c1"
   },
   {
-    title: "English Songs",
+    title: "Mana ke hum yaar",
     description: "Keep calm and focus with this music",
-    imgUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    imgUrl: "https://images.unsplash.com/photo-1526631134603-8d692d622f78?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    songId: "66f534e41492a138488ead3f"
 },
 {
   title: "Instrumental Study",
   description: "Focus with soft study music in the background.",
   imgUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  songId: "6704e8ef694c398f8d5fa6ac"
 },
 {
   title: "Focus Flow",
@@ -104,6 +106,8 @@ const SoundOfIndiaCardsData = [
 
 const LoggedInHome = () => {
   const { setCurrentSong } = useContext(songContext); // Use songContext to set the current song
+  const [soundInstance, setSoundInstance] = useState(null); // State to store the Howl instance
+  const [isPlaying, setIsPlaying] = useState(false); 
 
   // Function to retrieve the JWT token from the cookie
   const getTokenFromCookie = () => {
@@ -118,38 +122,43 @@ const LoggedInHome = () => {
   // Function to handle card click and play the song
   const handleCardClick = async (songId) => {
     try {
-      const token = getTokenFromCookie(); // Get the JWT token from the cookie
-
+      const token = getTokenFromCookie();
       if (!token) {
         console.error("No JWT token found in cookies, user may not be authenticated");
         return;
       }
 
-      console.log("JWT Token:", token); // Log the token to confirm it was extracted correctly
+      if (soundInstance && isPlaying) {
+        // Pause the song if it's playing
+        soundInstance.pause();
+        setIsPlaying(false);
+        return;
+      }
 
       // Fetch the song data from the backend
       const response = await fetch(`http://localhost:5000/api/song/get/${songId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Attach JWT token from cookie
+          'Authorization': `Bearer ${token}`
         }
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Fetched Song:", data.data);
+        setCurrentSong(data.data);
 
-        setCurrentSong(data.data); // Set the fetched song as the current song
-
-        // Play the song using Howl
-        const sound = new Howl({
-          src: [data.data.track], // Use the track URL from the song data
-          html5: true, // Use HTML5 Audio to ensure it works across all browsers
-          volume: 1.0, // Adjust the volume as needed
+        // Create a new Howl instance for the song
+        const newSound = new Howl({
+          src: [data.data.track],
+          html5: true,
+          volume: 1.0,
         });
 
-        sound.play(); // Play the sound
+        // Play the sound
+        newSound.play();
+        setSoundInstance(newSound); // Save the instance for future control
+        setIsPlaying(true); // Set playing state to true
       } else {
         console.error("Failed to fetch song:", response.statusText);
       }
