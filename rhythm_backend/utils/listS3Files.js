@@ -1,11 +1,12 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 // Step 1: Configure AWS SDK
 AWS.config.update({
-    accessKeyId: "AKIA5FTZCBORKISNRCQ4", // Replace with your IAM Access Key ID
-    secretAccessKey: "RocFIRr33N70iFPnpgiOMQMmxuu+i27kAnxC3+Iv", // Replace with your IAM Secret Access Key
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID, // Replace with your IAM Access Key ID
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, // Replace with your IAM Secret Access Key
     region: "us-east-1" // Replace with the region of your S3 bucket
   });
 
