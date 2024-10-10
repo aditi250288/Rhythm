@@ -34,7 +34,7 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
   const [isShuffleOn, setIsShuffleOn] = useState(false);
   const [isRepeatOn, setIsRepeatOn] = useState(false);
   // eslint-disable-next-line
-  const [cookies, setCookie] = useCookies(["spotifyToken"]);
+  const [cookies, setCookie, removeCookie] = useCookies(["token"]);
   // eslint-disable-next-line
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   // eslint-disable-next-line no-unused-vars
@@ -112,8 +112,6 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
   const {
     currentSong,
     setCurrentSong,
-    soundPlayed,
-    setSoundPlayed,
     isPaused,
     setIsPaused,
     songData,
@@ -122,6 +120,7 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
   } = useContext(songContext);
 
   const firstUpdate = useRef(true);
+  const soundPlayed = useRef(null);
 
   useEffect(() => {
     const token = cookies.spotifyToken;
@@ -132,18 +131,6 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
       // You might want to validate the token here or set up Spotify API
     }
   }, [cookies.spotifyToken]);
-
-  useLayoutEffect(() => {
-    if (firstUpdate.current) {
-      firstUpdate.current = false;
-      return;
-    }
-    if (!currentSong || !currentSong.track) {
-      return;
-    }
-    changeSong(currentSong.track);
-    // eslint-disable-next-line
-  }, [currentSong]);
 
   const addSongToPlaylist = async (playlistId) => {
     if (!currentSong) return;
@@ -158,38 +145,65 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
     }
   };
 
-  const changeSong = (songSrc) => {
-    if (soundPlayed) {
-      soundPlayed.stop(); // Stop the currently playing song
+  useLayoutEffect(() => {
+    if (firstUpdate.current) {
+      firstUpdate.current = false;
+      return;
     }
+    if (!currentSong) {
+      return;
+    }
+    changeSong(currentSong.track);
+    // eslint-disable-next-line
+  }, [currentSong]);
 
-    // Create a new Howl instance for the new song
-    let sound = new Howl({
+  const changeSong = (songSrc) => {
+    if (soundPlayed.current) {
+      soundPlayed.current.stop(); // Stop the currently playing song before switching
+    }
+  
+    const sound = new Howl({
       src: [songSrc],
-      html5: true, // Ensures compatibility with large files
+      html5: true,
       volume: volume,
       onend: () => {
         if (isRepeatOn) {
-          sound.play(); // Repeat song if repeat is on
+          sound.play();
         } else {
-          playNextSong(); // Play next song if repeat is off
+          playNextSong();
         }
       },
       onplay: () => {
-        setSongDuration(sound.duration()); // Set the total song duration when song starts
-        requestAnimationFrame(updateProgress); // Start updating the progress bar
+        setSongDuration(sound.duration());
+        requestAnimationFrame(updateProgress); // Updates the progress bar
       },
     });
-
-    setSoundPlayed(sound);
-    sound.play(); // Play the new song
-    setIsPaused(false); // Ensure the state is set to playing
+  
+    soundPlayed.current=sound; // Set the new Howl instance
+    sound.play();
+    setIsPaused(false);
   };
+
+  const togglePlayPause = () => {
+    if (soundPlayed.current) {
+      if (isPaused) {
+        // If the song is paused, just resume it
+        soundPlayed.current.play();
+        setIsPaused(false);
+      } else {
+        // If the song is playing, pause it
+        soundPlayed.current.pause();
+        setIsPaused(true);
+      }
+    } else {
+      console.error("No song is currently loaded.");
+    }
+  };  
 
   // Update progress bar as the song plays
   const updateProgress = () => {
-    if (soundPlayed) {
-      setCurrentTime(soundPlayed.seek()); // Get current time of the song
+    if (soundPlayed.current) {
+      setCurrentTime(soundPlayed.current.seek()); // Get current time of the song
       requestAnimationFrame(updateProgress); // Continuously update the progress bar
     }
   };
@@ -197,23 +211,12 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
   // Handle progress bar seek
   const handleSeek = (e) => {
     const seekTime = e.target.value; // Get the time from the slider
-    if (soundPlayed) {
-      soundPlayed.seek(seekTime); // Seek to the selected time
+    if (soundPlayed.current) {
+      soundPlayed.current.seek(seekTime); // Seek to the selected time
       setCurrentTime(seekTime); // Update the current time in state
     }
   };
-
-  const togglePlayPause = () => {
-    if (soundPlayed) {
-      if (isPaused) {
-        soundPlayed.play();
-      } else {
-        soundPlayed.pause();
-      }
-      setIsPaused(!isPaused);
-    }
-  };
-
+  
   const getRandomIndex = (currentIndex) => {
     let randomIndex;
     do {
@@ -257,12 +260,22 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
   const handleVolumeChange = (e) => {
     const newVolume = e.target.value;
     setVolume(newVolume); // Update the volume state
-    if (soundPlayed) {
-      soundPlayed.volume(newVolume); // Set the volume for the song
+    if (soundPlayed.current) {
+      soundPlayed.current.volume(newVolume); // Set the volume for the song
     }
   };
 
-  // eslint-disable-next-line no-unused-vars
+  const handleLogout = () => {
+    // Remove the token cookie
+    removeCookie("token", { path: "/" });
+
+    // Optionally, you can also remove any Spotify-related cookies if needed
+    removeCookie("spotifyToken", { path: "/" });
+
+    // Redirect to the login page
+    navigate("/login");
+  };
+
 
   return (
     <div className="h-full w-full bg-app-black">
@@ -349,7 +362,10 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
                 ) : (
                   <span className="text-white">Connected to Spotify</span>
                 )}
-                <TextWithHover displayText={"LogOut"} />
+                <TextWithHover 
+                displayText={"LogOut"} 
+                onClick={handleLogout}
+                />
                 <div className="h-1/2 border-r border-white"></div>
               </div>
               <div className="w-2/5 flex justify-around h-full items-center">
@@ -381,9 +397,9 @@ const LoggedInContainer = ({ children, curActiveScreen }) => {
                 {currentSong.title}
               </div>
               <div className="text-xs text-gray-500 hover:underline cursor-pointer">
-                {currentSong.artist.firstName +
-                  " " +
-                  currentSong.artist.lastName}
+                {currentSong.artist && currentSong.artist.length > 0
+                  ? `${currentSong.artist[0].firstName} ${currentSong.artist[0].lastName}`
+                  : "Unknown Artist"}
               </div>
             </div>
           </div>

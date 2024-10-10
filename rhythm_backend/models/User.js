@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Artist',
   }],
+  isArtist: {
+    type: Boolean,
+    default: false,  // By default, a user is not an artist
+  },
 });
 
 // Remove sensitive information like password from the output

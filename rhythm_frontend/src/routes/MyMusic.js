@@ -13,6 +13,10 @@ const MyMusic = () => {
         const response = await makeAuthenticatedGETRequest("/api/song/get/mysongs");
         if (response && response.data) {
           setSongData(response.data);
+          setSongData(response.data.map(song => ({
+            ...song,
+            artist: song.artist[0] // Access the first artist in the array
+          })));
         }
       } catch (error) {
         console.error("Error fetching songs:", error);

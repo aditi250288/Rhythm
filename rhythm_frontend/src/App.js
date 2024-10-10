@@ -5,6 +5,7 @@ import LoginComponent from "./routes/login";
 import RegisterComponent from "./routes/register";
 // eslint-disable-next-line
 import HomeComponent from "./routes/home";
+import HelloComponent from "./routes/HelloComponent";
 import { makeAuthenticatedGETRequest } from "./utils/serverHelpers";
 import LoggedInHomeComponent from "./routes/LoggedInHome";
 import UploadSongs from "./routes/UploadSongs";
@@ -52,6 +53,9 @@ function App() {
           >
             <Routes>
               <Route path="/" element={<HelloComponent />} />
+              <Route path="/register" element={<RegisterComponent />} />
+              <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
+              <Route path="/login" element={<LoginComponent />} />
               <Route path="/home" element={<LoggedInHomeComponent />} />
               <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
               <Route path="/uploadSongs" element={<UploadSongs />} />
@@ -68,8 +72,8 @@ function App() {
           // loggedOut routes
           <Routes>
             {/*<Route path="/home" element={<HomeComponent />} />*/}
+            <Route path="/" element={<HelloComponent />} />
             <Route path="/login" element={<LoginComponent />} />
-            <Route path="/forgot-password" element={<ForgotPasswordComponent />} />
             <Route path="/register" element={<RegisterComponent />} />
             <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
@@ -78,9 +82,5 @@ function App() {
     </div>
   );
 }
-
-const HelloComponent = () => {
-  return <div>This is hello from component</div>;
-};
 
 export default App;

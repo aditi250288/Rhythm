@@ -17,7 +17,7 @@ const UploadSongs = () => {
 
   const submitSong = async () => {
     const data = { name, thumbnail, track: playlistUrl };
-    const response = await makeAuthenticatedPOSTRequest("/song/create", data);
+    const response = await makeAuthenticatedPOSTRequest("/api/song/create", data);
     if (response.err) {
       alert("Could not create song");
       return;

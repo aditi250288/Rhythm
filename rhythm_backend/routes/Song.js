@@ -29,7 +29,7 @@ router.post(
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const artist = req.User._id;
+      const artist = req.user._id;
       const songDetails = { name, thumbnail, track, artist };
       const newSong = await Song.create(songDetails);
 
@@ -42,7 +42,10 @@ router.post(
 );
 
 // Get all songs published by the current user
-router.get("/get/mysongs", passport.authenticate("jwt", { session: false }), async (req, res) => {
+router.get(
+  "/get/mysongs", 
+  passport.authenticate(
+    "jwt", { session: false }), async (req, res) => {
   try {
     const currentUser = req.user; // Fixed to use `req.user`
     const songs = await Song.find({ artist: currentUser._id }).populate("artist");

@@ -16,7 +16,9 @@ const SingleSongCard = ({ info, playSound, index }) => {
               {info.name}
             </div>
             <div className="text-xs text-gray-400 cursor-pointer hover:underline">
-              {info.artist[0].firstName + " " + info.artist[0].lastName}
+            {info.artist && info.artist.length > 0
+              ? `${info.artist[0].firstName} ${info.artist[0].lastName}`
+              : 'Unknown Artist'}
             </div>
           </div>
           <div className="w-1/6 flex items-center justify-center text-gray-400 text-sm">
