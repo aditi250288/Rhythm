@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Step 1: Configure AWS SDK
-AWS.config.update({
+/*AWS.config.update({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID, // Replace with your IAM Access Key ID
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, // Replace with your IAM Secret Access Key
     region: "us-east-1" // Replace with the region of your S3 bucket
@@ -54,7 +54,7 @@ const listFiles = async () => {
 
 // Step 3: Call the function to list files
 listFiles();
-
+*/
 
 
 
